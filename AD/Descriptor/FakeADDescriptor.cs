@@ -26,8 +26,8 @@ namespace Ad.Descriptor
         
         [XmlAttribute("pathToBanner")]
         public string PathToBanner { get; set; }
-        
-        [XmlAttribute("enable")] 
-        public bool Enable { get; set; }
+
+        [XmlAttribute("providerId")] 
+        public string ProviderId { get; set; }
     }
 }

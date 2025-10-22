@@ -10,5 +10,6 @@ namespace Ad.Service
         void SendEvent(string eventName, Dictionary<string, object> analyticsParams);
 
         void AdRevenue(Dictionary<string, object> analyticsParams);
+        
     }
 }

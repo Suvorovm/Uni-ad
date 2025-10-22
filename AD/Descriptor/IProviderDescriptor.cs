@@ -4,7 +4,7 @@ namespace Ad.Descriptor
 {
     public interface IProviderDescriptor
     {
-        [XmlArray("enable")]
-        bool Enable { get; }
+        [XmlAttribute("providerId")]
+        string ProviderId { get; }
     }
 }

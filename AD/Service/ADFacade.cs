@@ -13,11 +13,11 @@ namespace Ad.Service
         private readonly AdDescriptor _adDescriptor;
         private readonly IAdAnalytics _adAnalytics;
         
-        public AdFacade(DescriptorHolder descriptorHolder, IAdAnalytics adAnalytics)
+        public AdFacade(DescriptorHolder descriptorHolder, IAdAnalytics adAnalytics, IAdConsentService adConsentService)
         {
             _adAnalytics = adAnalytics;
             _adDescriptor = descriptorHolder.GetDescriptor<AdDescriptor>();
-            _adProvider = AdProviderFactory.CreateProvider(_adDescriptor, adAnalytics);
+            _adProvider = AdProviderFactory.CreateProvider(_adDescriptor, adAnalytics, adConsentService);
         }
 
         public UniTask Init()

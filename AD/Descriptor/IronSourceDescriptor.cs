@@ -19,8 +19,11 @@ namespace Ad.Descriptor
 
         [XmlAttribute("throwErrorInInit")]
         public bool ThrowErrorInInit { get; set; }
-        
+
         [XmlAttribute("testSuitCase")]
         public bool TestSuitCase { get; set; }
+
+        [XmlAttribute("providerId")]
+        public string ProviderId { get; set; }
     }
 }

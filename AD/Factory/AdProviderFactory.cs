@@ -9,33 +9,47 @@ namespace Ad.Factory
 {
     public class AdProviderFactory
     {
-        private static readonly Dictionary<Type, Func<IProviderDescriptor, IAdAnalytics, IAdProvider>>
+        private static readonly
+            Dictionary<Type, Func<IProviderDescriptor, IAdAnalytics, IAdConsentService, IAdProvider>>
             _providerRegistry =
-                new Dictionary<Type, Func<IProviderDescriptor, IAdAnalytics, IAdProvider>>()
+                new Dictionary<Type, Func<IProviderDescriptor, IAdAnalytics, IAdConsentService, IAdProvider>>()
                 {
+#if LEVEL_PLAY_SDK
                     {
                         typeof(IronSourceDescriptor),
-                        (descriptor, adAnalytics) => new IronSourceAdProvider(descriptor as IronSourceDescriptor, adAnalytics)
+                        (descriptor, adAnalytics, adConsentService) =>
+                            new IronSourceAdProvider(descriptor as IronSourceDescriptor, adAnalytics)
                     },
+#endif
+
                     {
                         typeof(FakeAdDescriptor),
-                        (descriptor, adAnalytics) => new FakeAdProvider(descriptor as FakeAdDescriptor)
-                    }
+                        (descriptor, adAnalytics, adConsentService) =>
+                            new FakeAdProvider(descriptor as FakeAdDescriptor)
+                    },
+#if CLEVER_SDK
+                    {
+                        typeof(CleverAdDescriptor),
+                        (descriptor, adAnalytics, adConsentService) =>
+                            new CleverAdProvider((CleverAdDescriptor) descriptor, adAnalytics, adConsentService)
+                    },
+#endif
                     // new providers can be here
                 };
 
-        public static IAdProvider CreateProvider(AdDescriptor adDescriptor, IAdAnalytics adAnalytics)
+        public static IAdProvider CreateProvider(AdDescriptor adDescriptor, IAdAnalytics adAnalytics,
+            IAdConsentService adConsentService)
         {
             foreach (PropertyInfo property in typeof(AdDescriptor).GetProperties())
             {
                 if (typeof(IProviderDescriptor).IsAssignableFrom(property.PropertyType))
                 {
                     IProviderDescriptor descriptor = property.GetValue(adDescriptor) as IProviderDescriptor;
-                    if (descriptor != null && descriptor.Enable)
+                    if (descriptor != null && descriptor.ProviderId == adDescriptor.AdProvider)
                     {
                         if (_providerRegistry.TryGetValue(property.PropertyType, out var factory))
                         {
-                            return factory(descriptor, adAnalytics);
+                            return factory(descriptor, adAnalytics, adConsentService);
                         }
                     }
                 }
@@ -44,7 +58,8 @@ namespace Ad.Factory
             throw new NotSupportedException("No valid ad provider configuration found.");
         }
 
-        public static void RegisterProvider<TDescriptor>(Func<IProviderDescriptor, IAdAnalytics, IAdProvider> factory)
+        public static void RegisterProvider<TDescriptor>(
+            Func<IProviderDescriptor, IAdAnalytics, IAdConsentService, IAdProvider> factory)
             where TDescriptor : IProviderDescriptor
         {
             _providerRegistry[typeof(TDescriptor)] = factory;

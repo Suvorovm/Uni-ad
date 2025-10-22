@@ -1,4 +1,6 @@
-﻿using System.Threading;
+﻿#if LEVEL_PLAY_SDK
+
+using System.Threading;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
@@ -254,6 +256,7 @@ namespace Ad.Provider
                 { IronSourceAdConst.IRON_SOURCE_AD_LIFETIME_REVENUE, impressionData.lifetimeRevenue ?? 0},
                 { IronSourceAdConst.IRON_SOURCE_AD_ENCRYPTED_CPM, cpmEncrypted },
                 { IronSourceAdConst.IRON_SOURCE_AD_REVENUE, impressionDataRevenue },
+                { IronSourceAdConst.IRON_SOURCE_AD_DATA, impressionData}
             };
             _adAnalytics.AdRevenue(parameters);
         }
@@ -279,3 +282,4 @@ namespace Ad.Provider
         }
     }
 }
+#endif

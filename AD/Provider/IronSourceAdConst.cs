@@ -11,5 +11,6 @@
         public const string IRON_SOURCE_AD_LIFETIME_REVENUE = "ad_liftime_revenue";
         public const string IRON_SOURCE_AD_ENCRYPTED_CPM = "ad_encrypted_CPM";
         public const string IRON_SOURCE_AD_REVENUE = "revenue";
+        public const string IRON_SOURCE_AD_DATA = "ad_source_data";
     }
 }
