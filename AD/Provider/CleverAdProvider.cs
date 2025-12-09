@@ -1,5 +1,6 @@
 ﻿#if CLEVER_SDK
 using System;
+using System.Collections.Generic;
 using Ad.Descriptor;
 using Ad.Model;
 using Ad.Service;
@@ -16,6 +17,7 @@ namespace Ad.Provider
         private readonly CleverAdDescriptor _cleverAdDescriptor;
         private readonly IAdAnalytics _adAnalytics;
         private readonly IAdConsentService _adConsentService;
+        private readonly Stack<string> _placementShowQueue = new Stack<string>();
 
         private IMediationManager _mediationManager;
         private UniTaskCompletionSource _taskCompletionSource;
@@ -89,6 +91,10 @@ namespace Ad.Provider
                 return AdResult.NotInitialized;
             }
 
+            if (!_placementShowQueue.Contains(placement))
+            {
+                _placementShowQueue.Push(placement);
+            }
             switch (adType)
             {
                 case AdType.Reward:
@@ -111,12 +117,15 @@ namespace Ad.Provider
 
         private void TryShowBottomBanner()
         {
+            DestroyBanner();
             _adResult = new UniTaskCompletionSource<AdResult>();
-            if (_currentBanner == null && _mediationManager.IsReadyAd(CAS.AdType.Banner))
+            if (_currentBanner == null)
             {
                 _currentBanner = _mediationManager.GetAdView(AdSize.Banner);
             }
+
             _currentBanner?.SetActive(true);
+            _currentBanner?.SetPosition(0, 0, AdPosition.BottomCenter);
             _adResult?.TrySetResult(AdResult.Successfully);
         }
 
@@ -151,13 +160,17 @@ namespace Ad.Provider
 
         private void SubscribeOnEvents()
         {
+            _mediationManager.GetAdView(AdSize.Banner).OnImpression += OnImpressionBanner;
+
             _mediationManager.OnInterstitialAdLoaded += AdLoaded;
             _mediationManager.OnInterstitialAdFailedToLoad += AdFailedToLoad;
             _mediationManager.OnInterstitialAdShown += AdShown;
             _mediationManager.OnInterstitialAdFailedToShow += AdFailedToShow;
             _mediationManager.OnInterstitialAdClicked += AdClicked;
             _mediationManager.OnInterstitialAdClosed += AdClosed;
+            _mediationManager.OnInterstitialAdImpression += InterstitialAdImpression;
 
+            _mediationManager.OnRewardedAdImpression += RewardedAdImpression;
             _mediationManager.OnRewardedAdCompleted += AdCompleted;
             _mediationManager.OnRewardedAdLoaded += AdLoaded;
             _mediationManager.OnRewardedAdFailedToLoad += AdFailedToLoad;
@@ -165,6 +178,53 @@ namespace Ad.Provider
             _mediationManager.OnRewardedAdFailedToShow += AdFailedToShow;
             _mediationManager.OnRewardedAdClicked += AdClicked;
             _mediationManager.OnRewardedAdClosed += AdClosed;
+
+        }
+        private void OnImpressionBanner(IAdView view, AdMetaData data)
+        {
+            string placement = "none";
+            if (_placementShowQueue.Count != 0)
+            {
+                placement = _placementShowQueue.Peek();
+            }
+            SendAnalytics(data, placement);
+        }
+        private void RewardedAdImpression(AdMetaData impression)
+        {
+            string placement = "none";
+            if (_placementShowQueue.Count != 0)
+            {
+                placement = _placementShowQueue.Pop();
+            }
+
+            SendAnalytics(impression, placement);
+        }
+        private void InterstitialAdImpression(AdMetaData impression)
+        {
+            string placement = "none";
+            if (_placementShowQueue.Count != 0)
+            {
+                placement = _placementShowQueue.Pop();
+            }
+
+            SendAnalytics(impression, placement);
+        }
+        private void SendAnalytics(AdMetaData impression, string placement)
+        {
+            Dictionary<string, object> adImpression = new Dictionary<string, object>()
+            {
+                { CleverSourceAdConst.AD_PLATFORM, "CAS" },
+                { CleverSourceAdConst.AD_SOURCE, impression.network.ToString() },
+                { CleverSourceAdConst.AD_UNIT_NAME, impression.identifier },
+                { CleverSourceAdConst.AD_FORMAT, impression.type.ToString() },
+                { CleverSourceAdConst.CURRENCY, "USD" },
+                { CleverSourceAdConst.VALUE, impression.revenue },
+                { CleverSourceAdConst.AD_LIFE_TIME_REVENUE, impression.lifetimeRevenue },
+                { CleverSourceAdConst.AD_PRECISION, impression.priceAccuracy },
+                { CleverSourceAdConst.SOURCE_UNIT_ID, impression.sourceUnitId },
+                { CleverSourceAdConst.PLACEMENT, placement }
+            };
+            _adAnalytics.AdRevenue(adImpression);
         }
 
         private void AdCompleted()
@@ -216,13 +276,18 @@ namespace Ad.Provider
         {
             _currentBanner?.SetActive(false);
 
+            _mediationManager.GetAdView(AdSize.Banner).OnImpression -= OnImpressionBanner;
+
+
             _mediationManager.OnInterstitialAdLoaded -= AdLoaded;
             _mediationManager.OnInterstitialAdFailedToLoad -= AdFailedToLoad;
             _mediationManager.OnInterstitialAdShown -= AdShown;
             _mediationManager.OnInterstitialAdFailedToShow -= AdFailedToShow;
             _mediationManager.OnInterstitialAdClicked -= AdClicked;
             _mediationManager.OnInterstitialAdClosed -= AdClosed;
+            _mediationManager.OnInterstitialAdImpression -= InterstitialAdImpression;
 
+            _mediationManager.OnRewardedAdImpression -= RewardedAdImpression;
             _mediationManager.OnRewardedAdCompleted -= AdCompleted;
             _mediationManager.OnRewardedAdLoaded -= AdLoaded;
             _mediationManager.OnRewardedAdFailedToLoad -= AdFailedToLoad;
