@@ -2,7 +2,7 @@ using System;
 using System.Xml.Serialization;
 using Ad.Descriptor;
 
-namespace Core.Ad.Provider
+namespace Ad.Descriptor
 {
     [Serializable]
     [XmlType("takeTop")]
