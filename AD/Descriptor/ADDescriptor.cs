@@ -16,6 +16,9 @@ namespace Ad.Descriptor
         
         [XmlElement("cleverAd")]
         public CleverAdDescriptor CleverAdDescriptor { get; set; }
+
+        [XmlElement("takeTop")]
+        public AdTakeTopDescriptor TakeTopDescriptor { get; set; }
         
     }
 }
